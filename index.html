@@ -1,0 +1,54 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<script type="text/javascript" charset="utf-8" src='jquery.1.9.1.min.js'></script>
+<script type="text/javascript" charset="utf-8">
+
+
+var url = "./5/1.bin";
+
+$(function () {
+
+		  
+
+/*
+Int8Array             8位有符号整数，类似于C里面的char
+Uint8Array            8位无符号整数，类似于C里面的unsigned char
+Uint8ClampedArray     8位无符号整数，跟Uint8类似，但在溢出处理上不大一样
+Int16Array            
+Uint16Array
+Int32Array
+Uint32Array
+Float32Array
+Float64Array
+
+parameter1_:_表示输入二进制数据
+parameter2_:_表示数据的偏移字节数
+parameter3_:_表示取数据的个数
+*/
+
+
+var xhr = new XMLHttpRequest();
+xhr.open('GET', url, true);
+xhr.responseType = 'arraybuffer';
+ 
+xhr.onload = function(e) {
+  // response is unsigned 8 bit integer
+  var baseinfo = new Int32Array(this.response,0,2); 
+  var v_data= new Float32Array(this.response,4*2,baseinfo[0]); 
+  var f_data= new Int32Array(this.response,4*(baseinfo[0]+2),baseinfo[1]); 
+  console.log(baseinfo);
+  console.log(v_data);
+  console.log(f_data);
+  };
+ 
+xhr.send();
+})
+</script>		
+</head>
+<body>
+
+</body>
+</html>
