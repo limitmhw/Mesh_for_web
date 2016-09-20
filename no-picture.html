@@ -1,0 +1,199 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - PLY</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			#info {
+				color: #fff;
+				position: absolute;
+				top: 10px;
+				width: 100%;
+				text-align: center;
+				z-index: 100;
+				display:block;
+
+			}
+
+			a { color: skyblue }
+			.button { background:#999; color:#eee; padding:0.2em 0.5em; cursor:pointer }
+			.highlight { background:orange; color:#fff; }
+
+			span {
+				display: inline-block;
+				width: 60px;
+				float: left;
+				text-align: center;
+			}
+
+		</style>
+	</head>
+	<body>
+		<div id="info">
+			<a href="http://threejs.org" target="_blank">three.js</a> -
+			 Image from <a href="http://www.xinsong.com"> Sanbody Tec.</a>. Binary loader test by Sui Wei.
+		</div>
+
+		<script src="three.js"></script>
+	
+		<script src="Detector.js"></script>
+		<script src="stats.min.js"></script>
+        <script src="TrackballControls.js"></script>
+		<script src="BinLoader_maya.js"></script>
+		
+		<script type="text/javascript" charset="utf-8" src='jquery.1.9.1.min.js'></script>
+        <script type="text/javascript" charset="utf-8" src='jquery.imgpreload.js'></script>
+	    <script src="shaders/Texture.js"></script>
+
+
+		<script>
+			function load_material(data_url) {
+				var scope_n=this;
+				var xhr = new XMLHttpRequest();
+				xhr.open('GET', data_url, false);//同步方式
+				xhr.onload = function (e) {
+					text = this.response;
+					scope_n.imgbase64=text;
+					console.log(text);
+				}
+				xhr.send();
+				var image_n = new Image();
+				image_n.src = scope_n.imgbase64;
+				var texture = new THREE.Texture();
+				texture.image = image_n;
+				image_n.onload = function () {
+					texture.needsUpdate = true;
+				};
+				//texture.repeat.set(3, 3);
+				texture.wrapS = texture.wrapT = THREE.MirroredRepeatWrapping;
+				var material = new THREE.MeshLambertMaterial({
+						map : texture
+					});
+				return material;
+			}
+			if (!Detector.webgl) {
+				var warning = Detector.getWebGLErrorMessage();
+				document.getElementById('container').appendChild(warning);
+			}
+			var container, stats;
+			var camera, cameraTarget, scene, renderer;
+			var imgAddress = './data/new_texture_0814/ghxp.png';
+			var modelAddress = './data/new_texture_0814/youjiao8k.maya';
+			var source_array = [];
+			var model_scale = 0.0055;
+			var isModelLoaded = false;
+			var loadingAnimaDelay;
+			var myModel;
+		
+			//source_array.push(modelAddress);
+			source_array.push(imgAddress);
+			
+			$.imgpreload(source_array, {
+				all : function () {
+					init();
+					animate();
+				}
+			});
+			/*
+			*/
+			function init() {
+				container = document.createElement('div');
+				document.body.appendChild(container);
+				camera = new THREE.PerspectiveCamera(25, window.innerWidth / window.innerHeight, 0.1, 10000);
+				camera.position.set(3, 0.15, 3);
+				scene = new THREE.Scene();
+				controls = new THREE.TrackballControls(camera);
+				controls.rotateSpeed = 1.5;
+				controls.zoomSpeed = 0.5;
+				controls.panSpeed = 0.2;
+				controls.noZoom = false;
+				controls.noPan = false;
+				controls.staticMoving = false;
+				controls.dynamicDampingFactor = 0.3;
+				var material =load_material('./data/new_texture_0814/ghxp.img');
+				//////////////////////////////
+				var loader = new THREE.BinLoader();
+				loader.load('./data/youjiao8k.maya', function (geometry) {
+					var mesh = new THREE.Mesh(geometry, material); debugger
+					mesh.rotation.x = Math.PI * (-80 / 180);
+					mesh.scale.set(0, 0, 0);
+					myModel = mesh;
+					scene.add(myModel);
+					clearInterval(loadingAnimaDelay);
+					setTimeout(function () {
+						var my_scale = 0,
+						my_scale_step = 1;
+						var modelScaleDelay = setInterval(function () {
+								my_scale += 0.0005 * my_scale_step;
+								my_scale_step += 0.05;
+								mesh.scale.set(my_scale, my_scale, my_scale);
+								if (my_scale >= model_scale) {
+									clearInterval(modelScaleDelay);
+									isModelLoaded = true;
+								}
+							}, 0.1);
+					}, 500);
+				});
+				var ambient = new THREE.AmbientLight(0x444444);
+				scene.add(ambient);
+				var directionalLight = new THREE.DirectionalLight(0xffeedd);
+				directionalLight.position.set(0, 0, -1).normalize();
+				scene.add(directionalLight);
+				scene.add(new THREE.HemisphereLight(0x443333, 0x111122));
+				renderer = new THREE.WebGLRenderer({
+						antialias : true
+					});
+				renderer.setPixelRatio(window.devicePixelRatio);
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				container.appendChild(renderer.domElement);
+				stats = new Stats();
+				container.appendChild(stats.dom);
+				window.addEventListener('resize', onWindowResize, false);
+			}
+			function addShadowedLight(x, y, z, color, intensity) {
+				var directionalLight = new THREE.DirectionalLight(color, intensity);
+				directionalLight.position.set(x, y, z);
+				scene.add(directionalLight);
+				directionalLight.castShadow = true;
+				var d = 1;
+				directionalLight.shadow.camera.left = -d;
+				directionalLight.shadow.camera.right = d;
+				directionalLight.shadow.camera.top = d;
+				directionalLight.shadow.camera.bottom = -d;
+				directionalLight.shadow.camera.near = 1;
+				directionalLight.shadow.camera.far = 4;
+				directionalLight.shadow.mapSize.width = 1024;
+				directionalLight.shadow.mapSize.height = 1024;
+				directionalLight.shadow.bias = -0.005;
+			}
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize(window.innerWidth, window.innerHeight);
+			}
+			function animate() {
+				requestAnimationFrame(animate);
+				render();
+				controls.update();
+				stats.update();
+			}
+			function render() {
+				if (isModelLoaded) {
+					myModel.scale.set(model_scale, model_scale, model_scale);
+					controls.update();
+				}
+				renderer.render(scene, camera);
+			}
+
+
+		</script>
+	</body>
+</html>
